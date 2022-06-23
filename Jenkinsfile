@@ -1,22 +1,71 @@
 pipeline {
   agent {
     kubernetes {
-      label 'promo-app' // all your pods will be named with this prefix, followed by a unique id
-      idleMinutes 5 // how long the pod will live after no jobs have run on it
-      yamlFile 'build-pod.yaml' // path to the pod definition relative to the root of our project
-      defaultContainer 'maven' // define a default container if more than a few stages use it, will default to jnlp container
+      yaml '''
+        apiVersion: v1
+        kind: Pod
+        spec:
+          containers:
+          - name: podman
+            image: quay.io/podman/stable
+            command:
+            - cat
+            tty: true
+            securityContext:
+               privileged: true
+            
+       '''
     }
   }
+  environment {
+        DOCKERHUB_CREDENTIALS= credentials('dockerhub-pwd')
+  }
   stages {
-    stage('Build') {
-      steps {  // no container directive is needed as the maven container is the default
-        sh "mvn clean install"   
+    stage('test -version podman inside docker') {
+      steps {
+        container('podman') {
+          sh 'podman --version'
+          sh 'whoami'
+          // sh 'podman pull docker.io/library/httpd'
+        }
+      }
+    }  
+    stage('git clone') {
+      steps {
+        container('podman') {
+          git branch: 'main', url: 'https://github.com/vitak01/project2.git'
+              echo "Clone Successfuly !!!"
+        }
       }
     }
-    stage('Build2') {
-      steps { // no container directive is needed as the maven container is the default
-        sh "echo 'gfjfd'"
+    stage('docker build') {
+      steps {
+        container('podman') {
+          sh " podman build -t vitak03/app1:$BUILD_NUMBER ."
+          echo " Build image Completed "
+        }
       }
+    }
+    stage('Login to Docker Hub ') {
+      steps{
+        container('podman') {
+           sh 'echo $DOCKERHUB_CREDENTIALS_PSW | podman login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin'
+           echo "Login Completed"
+        }
+      }
+    }
+    stage('Push in Docker Hub ') {
+      steps{
+        container('podman') {
+           sh 'podman push docker.io/vitak03/app1:$BUILD_NUMBER'
+           echo "Login Completed"
+        }
+      }
+    }
+  }
+  post {
+    always {
+           sh 'podman logout'
     }
   }
 }
