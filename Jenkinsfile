@@ -49,7 +49,7 @@ pipeline {
     stage('Login to Docker Hub ') {
       steps{
         container('podman') {
-           sh 'echo $DOCKERHUB_CREDENTIALS_PSW | podman login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin'
+           sh 'echo $DOCKERHUB_CREDENTIALS_PSW | podman login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin docker.io'
            echo "Login Completed"
         }
       }
@@ -57,15 +57,17 @@ pipeline {
     stage('Push in Docker Hub ') {
       steps{
         container('podman') {
-           sh 'podman push docker.io/vitak03/app1:$BUILD_NUMBER'
-           echo "Login Completed"
+           sh 'podman push vitak03/app1:$BUILD_NUMBER'
+           echo "Push Completed"
         }
       }
     }
   }
   post {
     always {
-           sh 'podman logout'
+        container('podman') {
+           sh 'podman logout docker.io'
+        }
     }
   }
 }
