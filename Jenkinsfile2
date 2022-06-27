@@ -1,12 +1,11 @@
-pipeline {
-  environment {
-        DOCKERHUB_CREDENTIALS= credentials('dockerhub-pwd')
-  }
+def buildNumber = Jenkins.instance.getItem('project2').lastSuccessfulBuild.number pipeline {
   agent any
   stages {
     stage('git clone') {
       steps {
           git branch: 'main', url: 'https://github.com/vitak01/project2.git'
+              echo "$buildNumber"
+              sh "sed -i 's+vitak03/app1.*+vitak03/app1:$buildNumber+g' app-depl.yaml"
               echo "Clone Successfuly !!!"
       }
     }
