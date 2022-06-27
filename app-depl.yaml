@@ -15,7 +15,7 @@ spec: # specification of deployment
     spec: # spec of pod
       containers:
         - name: server
-          image: vitak03/app1:firsstry
+          image: vitak03/app1
 
 ---
 apiVersion: v1

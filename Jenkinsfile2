@@ -1,0 +1,20 @@
+pipeline {
+  environment {
+        DOCKERHUB_CREDENTIALS= credentials('dockerhub-pwd')
+  }
+  agent any
+  stages {
+    stage('git clone') {
+      steps {
+          git branch: 'main', url: 'https://github.com/vitak01/project2.git'
+              echo "Clone Successfuly !!!"
+      }
+    }
+    stage('deploy kubernetes') {
+      steps {
+         kubernetesDeploy(configs: "app-depl.yaml", kubeconfigId: "kubernetes1")
+              echo "deploy Successfuly !!!"
+      }          
+    }
+ }
+}  
