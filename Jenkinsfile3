@@ -1,0 +1,79 @@
+pipeline {
+  agent {
+    kubernetes {
+      yaml '''
+        apiVersion: v1
+        kind: Pod
+        spec:
+          containers:
+          - name: dind
+            image: docker:dind
+            command:
+            - cat
+            tty: true
+            securityContext:
+               privileged: true
+            volumeMounts:
+            - name: dockersock
+              mountPath: "/var/run/docker.sock"
+          volumes:
+          - name: dockersock
+            hostPath:
+              path: /var/run/docker.sock
+            
+       '''
+    }
+  }
+  environment {
+        DOCKERHUB_CREDENTIALS= credentials('dockerhub-pwd')
+  }
+  stages {
+    stage('test -version docker inside docker') {
+      steps {
+        container('dind') {
+          sh 'docker --version'
+          sh 'whoami'
+        }
+      }
+    }  
+    stage('git clone') {
+      steps {
+        container('dind') {
+          git branch: 'main', url: 'https://github.com/vitak01/project2.git'
+              echo "Clone Successfuly !!!"
+        }
+      }
+    }
+    stage('docker build') {
+      steps {
+        container('dind') {
+          sh " docker build -t vitak03/appdind:$BUILD_NUMBER ."
+          echo " Build image Completed "
+        }
+      }
+    }
+    stage('Login to Docker Hub ') {
+      steps{
+        container('dind') {
+           sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin'
+           echo "Login Completed"
+        }
+      }
+    }
+    stage('Push in Docker Hub ') {
+      steps{
+        container('dind') {
+           sh 'docker push vitak03/appdind:$BUILD_NUMBER'
+           echo "Push Completed"
+        }
+      }
+    }
+  }
+  post {
+    always {
+        container('dind') {
+           sh 'docker logout'
+        }
+    }
+  }
+}
